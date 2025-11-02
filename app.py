@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from serpapi import GoogleSearch
+from serpapi.google_search import GoogleSearch
 from flask_cors import CORS # Důležité pro komunikaci mezi frontendem (index.html) a backendem (Flask)
 
 app = Flask(__name__)
@@ -60,3 +60,4 @@ if __name__ == '__main__':
     # Ponecháno pro lokální spouštění (python app.py).
     print("Backend server spuštěn na http://127.0.0.1:5000")
     app.run(debug=True)
+
