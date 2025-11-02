@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google SERP Extractor</title>
+    <style>
+        /* --- Obecné styly --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            background-color: #f4f7f6; /* Světle šedé pozadí */
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #1e88e5; /* Modrý nadpis */
+            font-size: 1.8em;
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+
+        /* --- Styly formuláře --- */
+        #search-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #555;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"] {
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #1e88e5;
+            box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.2);
+            outline: none;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .input-group input {
+            flex-grow: 1;
+        }
+
+        /* --- Tlačítko pro získání výsledků --- */
+        .submit-button {
+            padding: 12px 20px;
+            background-color: #4CAF50; /* Zelené tlačítko */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .submit-button:hover {
+            background-color: #45a049;
+        }
+
+        .submit-button:active {
+            transform: scale(0.99);
+        }
+
+        /* --- Stavové zprávy --- */
+        #status {
+            margin-top: 25px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+            min-height: 20px; /* Zajistí místo pro zprávu */
+        }
+        
+        /* Zprávy o chybě/načítání */
+        #status:not(:empty) {
+            border: 1px solid;
+        }
+
+        /* Zpráva o načítání */
+        #status.loading {
+            background-color: #fff3cd;
+            color: #856404;
+            border-color: #ffeeba;
+        }
+        
+        /* Zpráva o chybě */
+        #status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+
+        /* Zpráva o úspěchu */
+        #status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+
+        /* --- Odkaz pro stažení --- */
+        #download-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #download-link a {
+            display: inline-block;
+            padding: 15px 30px;
+            background-color: #1e88e5; /* Modré tlačítko */
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 700;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        #download-link a:hover {
+            background-color: #1565c0;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Extractor výsledků Google (SERP API)</h1>
+
+        <form id="search-form">
+            <label for="keyword">Zadejte klíčové slovní spojení:</label>
+            <div class="input-group">
+                <input type="text" id="keyword" name="keyword" placeholder="např. nejlepší káva praha" required>
+                <button type="submit" class="submit-button">Získat</button>
+            </div>
+        </form>
+
+        <div id="status"></div>
+        <div id="download-link"></div>
+    </div>
+
+    <script>
+        document.getElementById('search-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const keywordInput = document.getElementById('keyword');
+            const keyword = keywordInput.value;
+            const statusDiv = document.getElementById('status');
+            const downloadDiv = document.getElementById('download-link');
+            const submitButton = document.querySelector('.submit-button');
+
+            // Reset a nastavení stavu "Načítám"
+            statusDiv.textContent = '⌛ Načítám výsledky... Prosím, čekejte.';
+            statusDiv.className = 'loading';
+            downloadDiv.innerHTML = '';
+            submitButton.disabled = true; // Zamezení vícenásobného odeslání
+
+            try {
+                // Požadavek na Flask backend
+                const response = await fetch('http://127.0.0.1:5000/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keyword: keyword })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Chyba serveru: ${response.statusText}`);
+                }
+
+                // Odpověď by měla být JSON s daty
+                const data = await response.json();
+
+                // Konverze JSON dat na řetězec a vytvoření blob
+                const jsonString = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+
+                // Vytvoření odkazu pro stažení
+                const link = document.createElement('a');
+                link.href = url;
+                // Vytvoření názvu souboru (nahradí mezery podtržítky)
+                link.download = `google_serp_${keyword.trim().toLowerCase().replace(/\s+/g, '_')}.json`;
+                link.textContent = `⬇ Stáhnout ${data.length} výsledků (JSON)`;
+                
+                downloadDiv.appendChild(link);
+                statusDiv.textContent = '✅ Výsledky byly úspěšně načteny a připraveny ke stažení!';
+                statusDiv.className = 'success';
+
+            } catch (error) {
+                statusDiv.textContent = `❌ CHYBA: Nepodařilo se získat data. Detail: ${error.message}`;
+                statusDiv.className = 'error';
+                console.error('Fetch error:', error);
+            } finally {
+                submitButton.disabled = false; // Opětovné povolení tlačítka
+            }
+        });
+    </script>
+
+</body>
+</html>
