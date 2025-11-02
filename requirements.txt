@@ -1,0 +1,4 @@
+Flask
+flask-cors
+serpapi
+gunicorn  # Webový server pro produkční prostředí
