@@ -56,6 +56,7 @@ def search_google():
         return jsonify({"error": f"Nastala chyba při komunikaci s vyhledávacím API: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    # Spuštění Flask serveru
+    # Při spouštění přes Gunicorn nebo jiný produkční server se tento blok ignoruje.
+    # Ponecháno pro lokální spouštění (python app.py).
     print("Backend server spuštěn na http://127.0.0.1:5000")
     app.run(debug=True)
